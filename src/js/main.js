@@ -2047,6 +2047,7 @@ function StartFlashProcess() {
 var act_ESC_flash_Stat = 0;
 var act_ESC_sent_Page = 0;
 var afterFlashedDisplay = 0;
+var extraDelay = 1;
 
 function FlashProcessLoop() {
     while ((!(FlashESC_ID in ESCs) || !ESCs[FlashESC_ID].selected) && FlashESC_ID < 25) FlashESC_ID++;
@@ -2073,6 +2074,7 @@ function FlashProcessLoop() {
                 waitForResponseID = FlashESC_ID;
                 waitForResponseType = 0;
                 waitForResponseLength = 7;
+	        extraDelay = 1;
                 if (DEBUG) console.log("sent to ESC with ID: " + FlashESC_ID + " the block count that need to be flashed & erase flash command. ");
             } else if (act_ESC_flash_Stat == 3) {
                 if (act_ESC_sent_Page > 0) {
@@ -2120,6 +2122,7 @@ function FlashProcessLoop() {
                         if (responsePackage[5] == 0) {
                             if (DEBUG) console.log("ESC with ID: " + FlashESC_ID + " confirmed flash erase");
                             act_ESC_flash_Stat = 3;
+			    extraDelay = is_USB_only_bootloader;
                         } else {
                             if (DEBUG) console.log("ESC with ID: " + FlashESC_ID + " reported error: " + responsePackage[5]);
                         }
@@ -2176,11 +2179,11 @@ function FlashProcessLoop() {
                         }
                     }
                 }
-            } else if (++timeoutESC_IDs[FlashESC_ID] == DEFAULT_TIMEOUT || timeoutESC_IDs[FlashESC_ID] == DEFAULT_TIMEOUT * 2 || timeoutESC_IDs[FlashESC_ID] == DEFAULT_TIMEOUT * 3) {
+            } else if (++timeoutESC_IDs[FlashESC_ID] == DEFAULT_TIMEOUT+(350*extraDelay) || timeoutESC_IDs[FlashESC_ID] == (DEFAULT_TIMEOUT * 2)+(500*extraDelay) || timeoutESC_IDs[FlashESC_ID] == (DEFAULT_TIMEOUT * 3)+(650*extraDelay)) {
                 sendBytes(LastSentData);
                 if (DEBUG) console.log("no response, retrying");
 
-            } else if (timeoutESC_IDs[FlashESC_ID] > DEFAULT_TIMEOUT * 3) {
+            } else if (timeoutESC_IDs[FlashESC_ID] > (DEFAULT_TIMEOUT * 3)+(800*extraDelay)) {
                 send_ESC_package(FlashESC_ID, 0xFFFF, [FlashESC_ID + 10, FlashESC_ID + 20]);
                 timeoutESC_IDs[FlashESC_ID] = 0;
                 act_ESC_flash_Stat = 2;
